@@ -6,6 +6,7 @@ import time
 import glob
 import zipfile
 import io
+import textwrap
 from flask import Flask, request, jsonify, send_file, render_template
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +17,9 @@ UPLOAD_DIR = '/tmp/uploads'
 OUTPUT_DIR = '/tmp/outputs'
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Instagram Classic style font — Liberation Sans Bold (Helvetica clone)
+FONT_PATH = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
 
 TEMPLATES = [
     {'id': 'only_few', 'cut': 2.367, 'green': os.path.join(BASE_DIR, 'assets', 'green_only_few.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_only_few.mp4')},
@@ -74,35 +78,29 @@ CAPTION_TEXTS = [
 ]
 
 
+def wrap_caption(text, max_chars=28):
+    return '\n'.join(textwrap.wrap(text, width=max_chars))
+
+
+def get_font_arg():
+    if os.path.exists(FONT_PATH):
+        return "fontfile='" + FONT_PATH + "':"
+    return ""
+
+
 # ── DEBUG ──
 @app.route('/debug')
 def debug():
     info = {}
-    # Check FFmpeg
     try:
         r = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True, timeout=10)
         info['ffmpeg'] = r.stdout.split('\n')[0] if r.returncode == 0 else 'NOT FOUND'
     except:
         info['ffmpeg'] = 'NOT FOUND'
-
-    # Check assets
     assets_dir = os.path.join(BASE_DIR, 'assets')
-    if os.path.exists(assets_dir):
-        info['assets'] = os.listdir(assets_dir)
-    else:
-        info['assets'] = 'FOLDER MISSING'
-
-    # Check templates dir
-    tmpl_dir = os.path.join(BASE_DIR, 'templates')
-    if os.path.exists(tmpl_dir):
-        info['templates'] = os.listdir(tmpl_dir)
-    else:
-        info['templates'] = 'FOLDER MISSING'
-
-    info['base_dir'] = BASE_DIR
-    info['upload_dir'] = UPLOAD_DIR
-    info['output_dir'] = OUTPUT_DIR
-
+    info['assets'] = os.listdir(assets_dir) if os.path.exists(assets_dir) else 'FOLDER MISSING'
+    info['font_exists'] = os.path.exists(FONT_PATH)
+    info['font_path'] = FONT_PATH
     return jsonify(info)
 
 
@@ -146,7 +144,6 @@ def process_montage():
         if not os.path.exists(audio):
             return jsonify({'error': 'Audio manquant: ' + audio}), 500
 
-        # Step 1: Cut girl video
         r1 = subprocess.run([
             'ffmpeg', '-y', '-i', input_path,
             '-t', str(tmpl['cut']),
@@ -158,15 +155,16 @@ def process_montage():
         if not os.path.exists(girl_path):
             return jsonify({'error': 'Step1 fail: ' + r1.stderr[-300:]}), 500
 
-        # Step 2: Concat girl + green with caption
         with open(concat_path, 'w') as f:
             f.write("file '" + os.path.abspath(girl_path) + "'\n")
             f.write("file '" + green + "'\n")
 
+        wrapped = wrap_caption(caption, 30)
         with open(txt_path, 'w', encoding='utf-8') as f:
-            f.write(caption)
+            f.write(wrapped)
 
-        drawtext = "drawtext=textfile='" + txt_path + "':fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
+        font = get_font_arg()
+        drawtext = "drawtext=" + font + "textfile='" + txt_path + "':fontsize=38:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h*0.06:line_spacing=6"
 
         r2 = subprocess.run([
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_path,
@@ -178,7 +176,6 @@ def process_montage():
         if not os.path.exists(video_path):
             return jsonify({'error': 'Step2 fail: ' + r2.stderr[-300:]}), 500
 
-        # Step 3: Add audio
         r3 = subprocess.run([
             'ffmpeg', '-y', '-i', video_path, '-i', audio,
             '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
@@ -191,10 +188,8 @@ def process_montage():
             return jsonify({'error': 'Step3 fail: ' + r3.stderr[-300:]}), 500
 
         return jsonify({
-            'ok': True,
-            'file': output_name,
-            'template': tmpl['id'],
-            'caption': caption,
+            'ok': True, 'file': output_name,
+            'template': tmpl['id'], 'caption': caption,
             'download': '/download/' + output_name
         })
 
@@ -224,10 +219,8 @@ def process_caption():
     try:
         _add_caption(input_path, output_path, caption, uid)
         return jsonify({
-            'ok': True,
-            'file': output_name,
-            'caption': caption,
-            'download': '/download/' + output_name
+            'ok': True, 'file': output_name,
+            'caption': caption, 'download': '/download/' + output_name
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -265,10 +258,13 @@ def process_caption_batch():
 
 def _add_caption(input_path, output_path, caption, uid):
     txt_path = os.path.join(UPLOAD_DIR, uid + '_cap.txt')
-    with open(txt_path, 'w', encoding='utf-8') as f:
-        f.write(caption)
 
-    drawtext = "drawtext=textfile='" + txt_path + "':fontsize=42:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2"
+    wrapped = wrap_caption(caption, 28)
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(wrapped)
+
+    font = get_font_arg()
+    drawtext = "drawtext=" + font + "textfile='" + txt_path + "':fontsize=46:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2:line_spacing=12"
 
     cmd = [
         'ffmpeg', '-y',
