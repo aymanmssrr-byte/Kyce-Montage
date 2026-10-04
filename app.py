@@ -50,30 +50,30 @@ TEMPLATES = [
 ]
 
 MONTAGE_CAPTIONS = [
-    "POV: Before everything was going so well...",
-    "This might be a bad idea...",
+    "POV Before everything was going so well",
+    "This might be a bad idea",
     "This is your sign to look closer",
-    "Only a few people noticed this...",
-    "POV: the date was going perfectly...",
-    "POV: she said she was a good girl...",
-    "POV: you trusted her with your hoodie...",
-    "POV: she said I never do this...",
-    "POV: he said it was just a friend...",
-    "POV: the night started so innocent...",
-    "POV: she texted come over I am bored...",
-    "POV: you left her alone for 5 minutes...",
-    "POV: everything was fine until midnight...",
-    "POV: she said lets just watch a movie...",
-    "POV: you believed her when she said goodnight...",
-    "POV: the party was supposed to be chill...",
-    "POV: she promised it was her last drink...",
-    "POV: he said I will be home early...",
-    "POV: she said we are just friends...",
-    "POV: he said dont worry about him...",
-    "POV: it was supposed to be a quiet night...",
-    "POV: she said I deleted his number...",
-    "POV: the uber was supposed to go home...",
-    "POV: she said she was staying in tonight...",
+    "Only a few people noticed this",
+    "POV the date was going perfectly",
+    "POV she said she was a good girl",
+    "POV you trusted her with your hoodie",
+    "POV she said I never do this",
+    "POV he said it was just a friend",
+    "POV the night started so innocent",
+    "POV she texted come over I am bored",
+    "POV you left her alone for 5 minutes",
+    "POV everything was fine until midnight",
+    "POV she said lets just watch a movie",
+    "POV you believed her when she said goodnight",
+    "POV the party was supposed to be chill",
+    "POV she promised it was her last drink",
+    "POV he said I will be home early",
+    "POV she said we are just friends",
+    "POV he said dont worry about him",
+    "POV it was supposed to be a quiet night",
+    "POV she said I deleted his number",
+    "POV the uber was supposed to go home",
+    "POV she said she was staying in tonight",
 ]
 
 
@@ -86,24 +86,24 @@ CAPTION_TEXTS = [
     "I goon to audios of men whimpering but no one is ever gonna know cuz I barely have any followers and I am not using any hashtags",
     "I want to kiss me but replace the k with f and a with t",
     "when I was 14 a boy in my class typed 55378008 on calculator turned it upside down and said thats you",
-    "be a good boy and read this backwards elihc dna emina hctaw ew elihw styttit gib esehc kcus ot nam a rof gnikool mi",
+    "be a good boy and read this backwards  elihc dna emina hctaw ew elihw styttit gib esehc kcus ot nam a rof gnikool mi",
     "Biology But without b o g",
-    "I might be an 18yo blond but I am not stupid. I know you have a card hock rn. Now change c with h",
-    "What I really need Black without Bla Dirt without rt Four without Fo YOLO without LO",
-    "Missionary cause I am pretty bashots cause my cake fat Now change R with S",
-    "If it does not slip out when he leans down to kiss me so he can talk to me however he wants idc Read every 4th word",
-    "Amazing cook legs for days theep droat Queen Now read every third word",
+    "I might be an 18yo blond but I am not stupid I know you have a card hock rn  Now change c with h",
+    "What I really need  Black without Bla  Dirt without rt  Four without Fo  YOLO without LO",
+    "Missionary cause I am pretty  bashots cause my cake fat  Now change R with S",
+    "If it does not slip out when he leans down to kiss me so he can talk to me however he wants idc  Read every 4th word",
+    "Amazing cook  legs for days  theep droat Queen  Now read every third word",
     "acc so small that if you like or interact w any of my reels I WILL definitely send you something in dms",
-    "I am so single I literally text everyone who follows me I get excited thinking we might be friends Send me this post and I will",
+    "I am so single I literally text everyone who follows me  I get excited thinking we might be friends  Send me this post and I will",
     "Is 2008 too young?",
-    "this mommy stuff aint no joke i genuinely want to call him good boy buy him hot wheels and ill be the race track",
+    "this mommy stuff aint no joke  i genuinely want to call him good boy  buy him hot wheels and ill be the race track",
     "Is 2007 too young?",
-    "If you have crush on me pls go for it you literally have no competition at all",
-    "What I really need Vehicle without hicle Lobby without bby Urban without ban Yoga without ga Now read it backwards",
-    "I look like 18 because older man Dont take me Serious Now read 4 5 6 7 3 2 1",
-    "You can only pick two iPhone 18 Pro or 500 dollars or Me or Infinite beer",
+    "If you have crush on me pls go for it  you literally have no competition at all",
+    "What I really need  Vehicle without hicle  Lobby without bby  Urban without ban  Yoga without ga  Now read it backwards",
+    "I look like 18 because older man  Dont take me Serious  Now read 4 5 6 7 3 2 1",
+    "You can only pick two  iPhone 18 Pro  500 dollars  Me  or Infinite beer",
     "when i tell older guy my age and he says you just a babyyy instead of blocking me",
-    "lets make a deal you give me a like and say good morning and ill message you if i like you",
+    "lets make a deal  you give me a like and say good morning and ill message you if i like you",
 ]
 
 
@@ -118,7 +118,6 @@ def index():
 
 @app.route('/api/captions')
 def get_captions():
-    """Return captions as JSON so JS can fetch them."""
     return jsonify({
         'montage': MONTAGE_CAPTIONS,
         'caption': CAPTION_TEXTS,
@@ -141,6 +140,7 @@ def process_montage():
     girl_path = os.path.join(UPLOAD_DIR, uid + '_girl.mp4')
     concat_path = os.path.join(UPLOAD_DIR, uid + '_concat.txt')
     video_path = os.path.join(UPLOAD_DIR, uid + '_video.mp4')
+    txt_path = os.path.join(UPLOAD_DIR, uid + '_cap.txt')
     output_name = 'reel_' + tmpl['id'] + '_' + uid + '.mp4'
     output_path = os.path.join(OUTPUT_DIR, output_name)
 
@@ -153,7 +153,7 @@ def process_montage():
         if not os.path.exists(green):
             return jsonify({'error': 'Asset manquant: ' + green}), 500
 
-        # Step 1: Cut girl video to template length
+        # Step 1: Cut girl video
         subprocess.run([
             'ffmpeg', '-y', '-i', input_path,
             '-t', str(tmpl['cut']),
@@ -162,13 +162,16 @@ def process_montage():
             '-an', girl_path
         ], capture_output=True, timeout=120)
 
-        # Step 2: Concat girl + green clip with caption
+        # Step 2: Concat + caption via textfile
         with open(concat_path, 'w') as f:
             f.write("file '" + os.path.abspath(girl_path) + "'\n")
             f.write("file '" + green + "'\n")
 
-        safe_cap = caption.replace("'", "\\'").replace(":", "\\:")
-        drawtext = "drawtext=text='" + safe_cap + "':fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
+        with open(txt_path, 'w', encoding='utf-8') as f:
+            f.write(caption)
+
+        esc_txt = txt_path.replace(':', '\\:')
+        drawtext = "drawtext=textfile=" + esc_txt + ":fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
 
         subprocess.run([
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_path,
@@ -200,7 +203,7 @@ def process_montage():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
-        for f in [input_path, girl_path, concat_path, video_path]:
+        for f in [input_path, girl_path, concat_path, video_path, txt_path]:
             try:
                 os.remove(f)
             except:
@@ -224,7 +227,7 @@ def process_caption():
     video.save(input_path)
 
     try:
-        _add_caption(input_path, output_path, caption)
+        _add_caption(input_path, output_path, caption, uid)
         return jsonify({
             'ok': True,
             'file': output_name,
@@ -253,7 +256,7 @@ def process_caption_batch():
             output_path = os.path.join(UPLOAD_DIR, uid + '_out.mp4')
             video.save(input_path)
             try:
-                _add_caption(input_path, output_path, caption)
+                _add_caption(input_path, output_path, caption, uid)
                 zf.write(output_path, 'caption_' + str(i + 1) + '.mp4')
             except Exception as e:
                 print('Batch error video ' + str(i + 1) + ': ' + str(e))
@@ -261,6 +264,9 @@ def process_caption_batch():
                 for p in [input_path, output_path]:
                     if os.path.exists(p):
                         os.remove(p)
+                txt_p = os.path.join(UPLOAD_DIR, uid + '_cap.txt')
+                if os.path.exists(txt_p):
+                    os.remove(txt_p)
 
     zip_buffer.seek(0)
     return send_file(
@@ -271,22 +277,50 @@ def process_caption_batch():
     )
 
 
-def _add_caption(input_path, output_path, caption):
-    safe = caption.replace("'", "\\'").replace(":", "\\:")
-    drawtext = "drawtext=text='" + safe + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2:line_spacing=8"
+def _add_caption(input_path, output_path, caption, uid):
+    """Write caption to a temp text file then use textfile= in drawtext."""
+    txt_path = os.path.join(UPLOAD_DIR, uid + '_cap.txt')
+
+    # Write caption to file — avoids all FFmpeg escaping problems
+    with open(txt_path, 'w', encoding='utf-8') as f:
+        f.write(caption)
+
+    esc_txt = txt_path.replace(':', '\\:')
+
+    drawtext = (
+        "drawtext="
+        "textfile=" + esc_txt + ":"
+        "fontsize=42:"
+        "fontcolor=white:"
+        "borderw=3:"
+        "bordercolor=black:"
+        "x=(w-text_w)/2:"
+        "y=(h-text_h)/2:"
+        "line_spacing=10"
+    )
 
     cmd = [
         'ffmpeg', '-y',
         '-i', input_path,
         '-vf', drawtext,
-        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '23',
         '-c:a', 'copy',
         '-movflags', '+faststart',
         output_path
     ]
+
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+
+    # Cleanup text file
+    try:
+        os.remove(txt_path)
+    except:
+        pass
+
     if result.returncode != 0:
-        raise Exception('FFmpeg: ' + result.stderr[-300:])
+        raise Exception('FFmpeg: ' + result.stderr[-500:])
 
 
 # ── SHARED ──
