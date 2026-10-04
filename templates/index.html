@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kyce Montage</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 16px}
+h1{font-size:26px;font-weight:700;margin-bottom:6px;color:#fff}
+.sub{font-size:13px;color:#555;margin-bottom:24px}
+.mode-bar{display:flex;gap:0;margin-bottom:28px;background:#111;border-radius:12px;padding:4px;width:100%;max-width:420px}
+.mode-btn{flex:1;padding:12px 8px;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#666;display:flex;align-items:center;justify-content:center;gap:8px}
+.mode-btn.on-green{background:#00ff6618;color:#00ff66}
+.mode-btn.on-purple{background:#8b5cf618;color:#8b5cf6}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-g{background:#00ff66}.dot-p{background:#8b5cf6}
+.panel{display:none;width:100%;max-width:500px;flex-direction:column;align-items:center}
+.panel.show{display:flex}
+.dz{width:100%;border:2px dashed #222;border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;background:#111;margin-bottom:16px}
+.dz:hover,.dz.drag{border-color:currentColor;background:rgba(255,255,255,.015)}
+.dz .ico{font-size:40px;margin-bottom:10px}
+.dz p{font-size:13px;color:#555;line-height:1.6}
+.hl-g{color:#00ff66;font-weight:600}.hl-p{color:#8b5cf6;font-weight:600}
+.finfo{background:#111;border-radius:8px;padding:10px 14px;font-size:12px;color:#888;margin-bottom:14px;text-align:center;width:100%;display:none}
+.btn{width:100%;padding:14px;border:none;border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;color:#fff}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-g{background:#00cc55}.btn-p{background:#8b5cf6}
+.stabs{display:flex;gap:2px;margin-bottom:16px;background:#111;border-radius:8px;padding:3px}
+.stab{padding:6px 16px;border-radius:6px;border:none;background:transparent;color:#555;font-family:inherit;font-size:12px;font-weight:500;cursor:pointer}
+.stab.on{background:#1a1a1a;color:#ccc}
+.prog{width:100%;margin-top:14px;display:none}
+.prog.on{display:block}
+.prog-track{height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .3s;width:0}
+.pf-g{background:#00ff66}.pf-p{background:#8b5cf6}
+.prog-lbl{font-size:12px;color:#555;text-align:center;margin-top:6px}
+.res{width:100%;margin-top:16px;display:none}
+.res.on{display:block}
+.rcard{background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.rcard .rname{font-size:13px;font-weight:600;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcard .rcap{font-size:11px;color:#555;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlb{padding:8px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;color:#fff;flex-shrink:0;margin-left:10px;text-decoration:none}
+.dlb-g{background:#00cc55}.dlb-p{background:#8b5cf6}
+.again{width:100%;padding:12px;border:1px solid #222;border-radius:10px;background:transparent;color:#888;font-family:inherit;font-size:13px;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>Kyce Montage</h1>
+<p class="sub">Montage vert + Captions automatiques</p>
+
+<div class="mode-bar">
+  <button class="mode-btn on-green" id="mG"><span class="dot dot-g"></span> Montage Vert</button>
+  <button class="mode-btn" id="mC"><span class="dot dot-p"></span> Caption</button>
+</div>
+
+<!-- MONTAGE VERT -->
+<div class="panel show" id="pG">
+  <div class="dz" id="dzG" style="color:#00ff66">
+    <div class="ico">🟢</div>
+    <p><span class="hl-g">Clique ou glisse</span> ta video</p>
+    <p>Upload &rarr; portal vert + caption POV</p>
+    <input type="file" accept="video/*" hidden id="fG">
+  </div>
+  <div class="finfo" id="iG"></div>
+  <button class="btn btn-g" id="goG" disabled>Lancer le montage vert</button>
+  <div class="prog" id="prG"><div class="prog-track"><div class="prog-fill pf-g" id="pbG"></div></div><p class="prog-lbl" id="plG"></p></div>
+  <div class="res" id="rG"></div>
+</div>
+
+<!-- CAPTION -->
+<div class="panel" id="pC">
+  <div class="stabs">
+    <button class="stab on" id="ts1">1 video</button>
+    <button class="stab" id="tsB">Batch</button>
+  </div>
+  <div id="cS" style="width:100%;display:flex;flex-direction:column;align-items:center">
+    <div class="dz" id="dzCS" style="color:#8b5cf6">
+      <div class="ico">🔤</div>
+      <p><span class="hl-p">Clique ou glisse</span> ta video</p>
+      <p>Caption aleatoire &mdash; blanc + contour noir</p>
+      <input type="file" accept="video/*" hidden id="fCS">
+    </div>
+    <div class="finfo" id="iCS"></div>
+    <button class="btn btn-p" id="goCS" disabled>Ajouter la caption</button>
+  </div>
+  <div id="cB" style="width:100%;display:none;flex-direction:column;align-items:center">
+    <div class="dz" id="dzCB" style="color:#8b5cf6">
+      <div class="ico">📦</div>
+      <p><span class="hl-p">Clique ou glisse</span> tes videos</p>
+      <p>Jusqu'a 50 videos</p>
+      <input type="file" accept="video/*" multiple hidden id="fCB">
+    </div>
+    <div class="finfo" id="iCB"></div>
+    <button class="btn btn-p" id="goCB" disabled>Lancer le batch</button>
+  </div>
+  <div class="prog" id="prC"><div class="prog-track"><div class="prog-fill pf-p" id="pbC"></div></div><p class="prog-lbl" id="plC"></p></div>
+  <div class="res" id="rC"></div>
+</div>
+
+<script>
+var mG=document.getElementById('mG'),mC=document.getElementById('mC'),pG=document.getElementById('pG'),pC=document.getElementById('pC');
+mG.onclick=function(){mG.className='mode-btn on-green';mC.className='mode-btn';pG.className='panel show';pC.className='panel'};
+mC.onclick=function(){mC.className='mode-btn on-purple';mG.className='mode-btn';pC.className='panel show';pG.className='panel'};
+var ts1=document.getElementById('ts1'),tsB=document.getElementById('tsB'),cS=document.getElementById('cS'),cB=document.getElementById('cB');
+ts1.onclick=function(){ts1.className='stab on';tsB.className='stab';cS.style.display='flex';cB.style.display='none'};
+tsB.onclick=function(){tsB.className='stab on';ts1.className='stab';cB.style.display='flex';cS.style.display='none'};
+function setupDZ(z,inp,cb){z.onclick=function(){inp.click()};z.ondragover=function(e){e.preventDefault();z.classList.add('drag')};z.ondragleave=function(){z.classList.remove('drag')};z.ondrop=function(e){e.preventDefault();z.classList.remove('drag');cb(e.dataTransfer.files)};inp.onchange=function(){cb(inp.files)}}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function dlBlob(b,n){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();document.body.removeChild(a)}
+
+// MONTAGE VERT
+var gFile=null;
+setupDZ(document.getElementById('dzG'),document.getElementById('fG'),function(f){var v=f[0];if(v&&v.type.indexOf('video')===0){gFile=v;document.getElementById('iG').textContent=v.name;document.getElementById('iG').style.display='block';document.getElementById('goG').disabled=false}});
+document.getElementById('goG').onclick=function(){
+  if(!gFile)return;document.getElementById('goG').disabled=true;
+  var pr=document.getElementById('prG');pr.classList.add('on');document.getElementById('rG').className='res';document.getElementById('rG').innerHTML='';
+  document.getElementById('pbG').style.width='30%';document.getElementById('plG').textContent='Montage en cours...';
+  var fd=new FormData();fd.append('video',gFile);
+  fetch('/process',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('pbG').style.width='100%';
+    if(d.ok){document.getElementById('plG').textContent='Termine !';var rG=document.getElementById('rG');rG.className='res on';rG.innerHTML='<div class="rcard"><div><div class="rname">'+esc(d.file)+'</div><div class="rcap">'+esc(d.caption)+'</div></div><a class="dlb dlb-g" href="'+d.download+'" download>Telecharger</a></div><button class="again" onclick="resetG()">Encore une</button>'}
+    else{document.getElementById('plG').textContent='Erreur: '+d.error}
+  }).catch(function(e){document.getElementById('plG').textContent='Erreur: '+e.message})};
+function resetG(){gFile=null;document.getElementById('iG').style.display='none';document.getElementById('goG').disabled=true;document.getElementById('prG').classList.remove('on');document.getElementById('rG').className='res';document.getElementById('rG').innerHTML='';document.getElementById('pbG').style.width='0'}
+
+// CAPTION SINGLE
+var csFile=null;
+setupDZ(document.getElementById('dzCS'),document.getElementById('fCS'),function(f){var v=f[0];if(v&&v.type.indexOf('video')===0){csFile=v;document.getElementById('iCS').textContent=v.name;document.getElementById('iCS').style.display='block';document.getElementById('goCS').disabled=false}});
+document.getElementById('goCS').onclick=function(){
+  if(!csFile)return;document.getElementById('goCS').disabled=true;
+  var pr=document.getElementById('prC');pr.classList.add('on');document.getElementById('rC').className='res';document.getElementById('rC').innerHTML='';
+  document.getElementById('pbC').style.width='30%';document.getElementById('plC').textContent='Ajout de la caption...';
+  var fd=new FormData();fd.append('video',csFile);
+  fetch('/caption',{method:'POST',body:fd}).then(function(r){return r.json()}).then(function(d){
+    document.getElementById('pbC').style.width='100%';
+    if(d.ok){document.getElementById('plC').textContent='Termine !';var rC=document.getElementById('rC');rC.className='res on';rC.innerHTML='<div class="rcard"><div><div class="rname">'+esc(d.file)+'</div><div class="rcap">'+esc(d.caption)+'</div></div><a class="dlb dlb-p" href="'+d.download+'" download>Telecharger</a></div><button class="again" onclick="resetC()">Encore une</button>'}
+    else{document.getElementById('plC').textContent='Erreur: '+d.error}
+  }).catch(function(e){document.getElementById('plC').textContent='Erreur: '+e.message})};
+
+// CAPTION BATCH
+var cbFiles=[];
+setupDZ(document.getElementById('dzCB'),document.getElementById('fCB'),function(f){var a=[];for(var i=0;i<f.length&&i<50;i++){if(f[i].type.indexOf('video')===0)a.push(f[i])}if(a.length){cbFiles=a;document.getElementById('iCB').textContent=a.length+' video'+(a.length>1?'s':'');document.getElementById('iCB').style.display='block';document.getElementById('goCB').disabled=false}});
+document.getElementById('goCB').onclick=function(){
+  if(!cbFiles.length)return;document.getElementById('goCB').disabled=true;
+  document.getElementById('prC').classList.add('on');document.getElementById('rC').className='res';document.getElementById('rC').innerHTML='';
+  document.getElementById('pbC').style.width='20%';document.getElementById('plC').textContent='Upload + traitement...';
+  var fd=new FormData();for(var i=0;i<cbFiles.length;i++)fd.append('videos',cbFiles[i]);
+  fetch('/caption-batch',{method:'POST',body:fd}).then(function(r){if(!r.ok)throw new Error('Erreur serveur');document.getElementById('pbC').style.width='90%';document.getElementById('plC').textContent='Telechargement du ZIP...';return r.blob()}).then(function(b){
+    dlBlob(b,'captions_videos.zip');document.getElementById('pbC').style.width='100%';document.getElementById('plC').textContent=cbFiles.length+' videos traitees !';
+    document.getElementById('rC').className='res on';document.getElementById('rC').innerHTML='<button class="again" onclick="resetC()">Encore un batch</button>'
+  }).catch(function(e){document.getElementById('plC').textContent='Erreur: '+e.message})};
+function resetC(){csFile=null;cbFiles=[];document.getElementById('iCS').style.display='none';document.getElementById('iCB').style.display='none';document.getElementById('goCS').disabled=true;document.getElementById('goCB').disabled=true;document.getElementById('prC').classList.remove('on');document.getElementById('rC').className='res';document.getElementById('rC').innerHTML='';document.getElementById('pbC').style.width='0'}
+</script>
+</body>
+</html>
