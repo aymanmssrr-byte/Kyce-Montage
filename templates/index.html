@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kyce Montage</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px}
+h1{font-size:28px;color:#00ff66;margin-bottom:6px}
+.sub{font-size:13px;color:#666;margin-bottom:24px}
+.dz{width:100%;max-width:600px;border:3px dashed #333;border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .3s;background:#111}
+.dz:hover,.dz.over{border-color:#00ff66;background:rgba(0,255,102,.03)}
+.di{font-size:56px;margin-bottom:8px}
+.dt{font-size:16px;font-weight:700}
+.dd{font-size:13px;color:#666;margin-top:6px}
+input[type=file]{display:none}
+.bar{width:100%;max-width:600px;display:none;gap:12px;align-items:center;margin-top:16px}
+.bar.show{display:flex}
+.st{text-align:center;flex:1}.st b{font-size:24px;color:#00ff66;display:block}.st span{font-size:11px;color:#666}
+.q{width:100%;max-width:600px;margin-top:14px;display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow-y:auto}
+.qi{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#141414;border:1px solid #1e1e1e;border-radius:8px;font-size:13px}
+.qs{width:24px;text-align:center;flex-shrink:0}
+.qn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aaa}
+.qc{font-size:11px;color:#555;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qa{text-decoration:none;color:#00ff66;font-size:12px;font-weight:700;display:none}
+.qa.show{display:inline}
+</style>
+</head>
+<body>
+<h1>⚡ Kyce Montage</h1>
+<p class="sub">Glisse tes vidéos → template random → télécharge les reels</p>
+<div class="dz" id="dz" onclick="document.getElementById('fi').click()">
+  <div class="di">🎬</div>
+  <div class="dt">Glisse tes vidéos ici</div>
+  <div class="dd">ou clique pour choisir · 4 templates · 24 captions · batch illimité</div>
+</div>
+<input type="file" id="fi" accept="video/*" multiple>
+<div class="bar" id="bar">
+  <div class="st"><b id="xd">0</b><span>Terminés</span></div>
+  <div class="st"><b id="xt">0</b><span>Total</span></div>
+</div>
+<div class="q" id="q"></div>
+
+<script>
+const dz=document.getElementById('dz'),fi=document.getElementById('fi'),q=document.getElementById('q');
+let busy=false,dn=0,jobs=[];
+
+fi.onchange=e=>{if(e.target.files.length)add(e.target.files)};
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('over')};
+dz.ondragleave=()=>dz.classList.remove('over');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files.length)add(e.dataTransfer.files)};
+
+function add(files){
+  const arr=[...files].filter(f=>f.type.startsWith('video/'));
+  if(!arr.length)return;
+  document.getElementById('bar').classList.add('show');
+  arr.forEach(f=>{
+    const id='j'+Math.random().toString(36).slice(2,8);
+    const el=document.createElement('div');el.className='qi';el.id=id;
+    el.innerHTML='<div class="qs">⏳</div><div class="qn">'+f.name+'</div><div class="qc"></div><a class="qa" id="'+id+'dl" target="_blank">⬇ Télécharger</a>';
+    q.appendChild(el);
+    jobs.push({f,id});
+  });
+  document.getElementById('xt').textContent=jobs.length+dn;
+  if(!busy)go();
+}
+
+async function go(){
+  if(!jobs.length){busy=false;return}
+  busy=true;
+  const j=jobs.shift();
+  const el=document.getElementById(j.id);
+  el.querySelector('.qs').textContent='⚙️';
+  el.querySelector('.qc').textContent='Traitement...';
+
+  try{
+    const form=new FormData();
+    form.append('video',j.f);
+    
+    const res=await fetch('/process',{method:'POST',body:form});
+    const data=await res.json();
+    
+    if(data.ok){
+      el.querySelector('.qs').textContent='✅';
+      el.querySelector('.qc').textContent=data.caption.slice(0,30)+'...';
+      const dl=document.getElementById(j.id+'dl');
+      dl.href=data.download;
+      dl.download=data.file;
+      dl.classList.add('show');
+      dn++;
+      document.getElementById('xd').textContent=dn;
+    }else{
+      el.querySelector('.qs').textContent='❌';
+      el.querySelector('.qc').textContent=data.error||'Erreur';
+    }
+  }catch(e){
+    el.querySelector('.qs').textContent='❌';
+    el.querySelector('.qc').textContent=e.message;
+  }
+  go();
+}
+</script>
+</body>
+</html>
