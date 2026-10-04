@@ -131,7 +131,7 @@ def process_montage():
         with open(cp, 'w') as f:
             f.write("file '" + os.path.abspath(gp) + "'\nfile '" + green + "'\n")
         sc = safe_text(caption, 35)
-        dt = "drawtext=text='" + sc + "':fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
+        dt = "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='" + sc + "':fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
         subprocess.run(['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', cp, '-vf', dt, '-c:v', 'libx264', '-preset', 'ultrafast', '-an', vp], capture_output=True, timeout=120)
         if not os.path.exists(vp):
             return jsonify({'error': 'Concat echoue'}), 500
@@ -161,7 +161,7 @@ def process_caption():
     video.save(ip)
     try:
         sc = safe_text(caption, 28)
-        dt = "drawtext=text='" + sc + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2"
+        dt = "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='" + sc + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2"
         r = subprocess.run(['ffmpeg', '-y', '-i', ip, '-vf', dt, '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'copy', '-movflags', '+faststart', op], capture_output=True, text=True, timeout=300)
         if r.returncode != 0:
             return jsonify({'error': 'FFmpeg: ' + r.stderr[-500:]}), 500
@@ -187,7 +187,7 @@ def process_caption_batch():
             video.save(ip)
             try:
                 sc = safe_text(caption, 28)
-                dt = "drawtext=text='" + sc + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2"
+                dt = "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='" + sc + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2"
                 subprocess.run(['ffmpeg', '-y', '-i', ip, '-vf', dt, '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'copy', '-movflags', '+faststart', op], capture_output=True, timeout=300)
                 if os.path.exists(op):
                     zf.write(op, 'caption_' + str(i+1) + '.mp4')
