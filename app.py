@@ -18,7 +18,6 @@ OUTPUT_DIR = '/tmp/outputs'
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Instagram Classic style font — Liberation Sans Bold (Helvetica clone)
 FONT_PATH = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
 
 TEMPLATES = [
@@ -82,13 +81,22 @@ def wrap_caption(text, max_chars=28):
     return '\n'.join(textwrap.wrap(text, width=max_chars))
 
 
-def get_font_arg():
+def build_drawtext(txt_path, fontsize, position_y, borderw=4, line_spacing=10):
+    """Build drawtext filter string — NO quotes around paths."""
+    parts = ["drawtext="]
     if os.path.exists(FONT_PATH):
-        return "fontfile='" + FONT_PATH + "':"
-    return ""
+        parts.append("fontfile=" + FONT_PATH + ":")
+    parts.append("textfile=" + txt_path + ":")
+    parts.append("fontsize=" + str(fontsize) + ":")
+    parts.append("fontcolor=white:")
+    parts.append("borderw=" + str(borderw) + ":")
+    parts.append("bordercolor=black:")
+    parts.append("x=(w-text_w)/2:")
+    parts.append("y=" + position_y + ":")
+    parts.append("line_spacing=" + str(line_spacing))
+    return ''.join(parts)
 
 
-# ── DEBUG ──
 @app.route('/debug')
 def debug():
     info = {}
@@ -100,14 +108,15 @@ def debug():
     assets_dir = os.path.join(BASE_DIR, 'assets')
     info['assets'] = os.listdir(assets_dir) if os.path.exists(assets_dir) else 'FOLDER MISSING'
     info['font_exists'] = os.path.exists(FONT_PATH)
-    info['font_path'] = FONT_PATH
+    # List all fonts available
+    font_dir = '/usr/share/fonts/truetype/liberation'
+    info['font_dir'] = os.listdir(font_dir) if os.path.exists(font_dir) else 'DIR MISSING'
     return jsonify(info)
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/api/captions')
 def get_captions():
@@ -153,7 +162,7 @@ def process_montage():
         ], capture_output=True, text=True, timeout=120)
 
         if not os.path.exists(girl_path):
-            return jsonify({'error': 'Step1 fail: ' + r1.stderr[-300:]}), 500
+            return jsonify({'error': 'Step1: ' + r1.stderr[-300:]}), 500
 
         with open(concat_path, 'w') as f:
             f.write("file '" + os.path.abspath(girl_path) + "'\n")
@@ -163,8 +172,7 @@ def process_montage():
         with open(txt_path, 'w', encoding='utf-8') as f:
             f.write(wrapped)
 
-        font = get_font_arg()
-        drawtext = "drawtext=" + font + "textfile='" + txt_path + "':fontsize=38:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h*0.06:line_spacing=6"
+        drawtext = build_drawtext(txt_path, 38, "h*0.06", 3, 6)
 
         r2 = subprocess.run([
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_path,
@@ -174,7 +182,7 @@ def process_montage():
         ], capture_output=True, text=True, timeout=120)
 
         if not os.path.exists(video_path):
-            return jsonify({'error': 'Step2 fail: ' + r2.stderr[-300:]}), 500
+            return jsonify({'error': 'Step2: ' + r2.stderr[-300:]}), 500
 
         r3 = subprocess.run([
             'ffmpeg', '-y', '-i', video_path, '-i', audio,
@@ -185,7 +193,7 @@ def process_montage():
         ], capture_output=True, text=True, timeout=120)
 
         if not os.path.exists(output_path):
-            return jsonify({'error': 'Step3 fail: ' + r3.stderr[-300:]}), 500
+            return jsonify({'error': 'Step3: ' + r3.stderr[-300:]}), 500
 
         return jsonify({
             'ok': True, 'file': output_name,
@@ -234,7 +242,6 @@ def process_caption_batch():
     files = request.files.getlist('videos')
     if not files:
         return jsonify({'error': 'Pas de videos'}), 400
-
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for i, video in enumerate(files):
@@ -251,20 +258,17 @@ def process_caption_batch():
             finally:
                 for p in [input_path, output_path, os.path.join(UPLOAD_DIR, uid + '_cap.txt')]:
                     if os.path.exists(p): os.remove(p)
-
     zip_buffer.seek(0)
     return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='captions_batch.zip')
 
 
 def _add_caption(input_path, output_path, caption, uid):
     txt_path = os.path.join(UPLOAD_DIR, uid + '_cap.txt')
-
     wrapped = wrap_caption(caption, 28)
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(wrapped)
 
-    font = get_font_arg()
-    drawtext = "drawtext=" + font + "textfile='" + txt_path + "':fontsize=46:fontcolor=white:borderw=4:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2:line_spacing=12"
+    drawtext = build_drawtext(txt_path, 46, "(h-text_h)/2", 4, 12)
 
     cmd = [
         'ffmpeg', '-y',
@@ -275,11 +279,9 @@ def _add_caption(input_path, output_path, caption, uid):
         '-movflags', '+faststart',
         output_path
     ]
-
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     try: os.remove(txt_path)
     except: pass
-
     if result.returncode != 0:
         raise Exception('FFmpeg: ' + result.stderr[-500:])
 
@@ -290,7 +292,6 @@ def download(filename):
     if not os.path.exists(path):
         return jsonify({'error': 'Fichier non trouve'}), 404
     return send_file(path, as_attachment=True, download_name=filename)
-
 
 @app.route('/download-all')
 def download_all():
@@ -304,7 +305,6 @@ def download_all():
     zip_buf.seek(0)
     return send_file(zip_buf, as_attachment=True, download_name='reels_batch.zip', mimetype='application/zip')
 
-
 @app.before_request
 def cleanup_old():
     for d in [UPLOAD_DIR, OUTPUT_DIR]:
@@ -312,7 +312,6 @@ def cleanup_old():
             if time.time() - os.path.getmtime(f) > 3600:
                 try: os.remove(f)
                 except: pass
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
