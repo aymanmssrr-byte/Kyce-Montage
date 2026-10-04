@@ -1,8 +1,10 @@
 import os, random, subprocess, uuid, time, glob
 from flask import Flask, request, jsonify, send_file, render_template
 
-app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024  # 200MB max
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, 'templates'))
+app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
 
 UPLOAD_DIR = '/tmp/uploads'
 OUTPUT_DIR = '/tmp/outputs'
@@ -10,10 +12,10 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 TEMPLATES = [
-    {'id': 'only_few', 'cut': 2.367, 'green': 'assets/green_only_few.mp4', 'audio': 'assets/aud_only_few.mp4'},
-    {'id': 'something', 'cut': 3.967, 'green': 'assets/green_something.mp4', 'audio': 'assets/aud_something.mp4'},
-    {'id': 'first_move', 'cut': 4.333, 'green': 'assets/green_first_move.mp4', 'audio': 'assets/aud_first_move.mp4'},
-    {'id': 'guess', 'cut': 4.000, 'green': 'assets/green_guess.mp4', 'audio': 'assets/aud_guess.mp4'},
+    {'id': 'only_few', 'cut': 2.367, 'green': os.path.join(BASE_DIR, 'assets', 'green_only_few.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_only_few.mp4')},
+    {'id': 'something', 'cut': 3.967, 'green': os.path.join(BASE_DIR, 'assets', 'green_something.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_something.mp4')},
+    {'id': 'first_move', 'cut': 4.333, 'green': os.path.join(BASE_DIR, 'assets', 'green_first_move.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_first_move.mp4')},
+    {'id': 'guess', 'cut': 4.000, 'green': os.path.join(BASE_DIR, 'assets', 'green_guess.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_guess.mp4')},
 ]
 
 CAPTIONS = [
@@ -47,68 +49,100 @@ CAPTIONS = [
 def index():
     return render_template('index.html')
 
+@app.route('/health')
+def health():
+    # Check ffmpeg + assets
+    ffmpeg_ok = subprocess.run(['ffmpeg', '-version'], capture_output=True).returncode == 0
+    assets_ok = all(os.path.exists(t['green']) and os.path.exists(t['audio']) for t in TEMPLATES)
+    return jsonify({
+        'ffmpeg': ffmpeg_ok,
+        'assets': assets_ok,
+        'base_dir': BASE_DIR,
+        'files': os.listdir(os.path.join(BASE_DIR, 'assets')) if os.path.exists(os.path.join(BASE_DIR, 'assets')) else 'NO ASSETS DIR'
+    })
+
 @app.route('/process', methods=['POST'])
 def process_video():
     if 'video' not in request.files:
         return jsonify({'error': 'Pas de vidéo'}), 400
-    
+
     file = request.files['video']
     if not file.filename:
         return jsonify({'error': 'Fichier vide'}), 400
-    
-    # Pick random template + caption
+
     tmpl = random.choice(TEMPLATES)
     caption = random.choice(CAPTIONS)
-    
+
     uid = str(uuid.uuid4())[:8]
     input_path = os.path.join(UPLOAD_DIR, f'{uid}_input.mp4')
     girl_path = os.path.join(UPLOAD_DIR, f'{uid}_girl.mp4')
+    green_path = os.path.join(UPLOAD_DIR, f'{uid}_green.mp4')
     concat_path = os.path.join(UPLOAD_DIR, f'{uid}_concat.txt')
     video_path = os.path.join(UPLOAD_DIR, f'{uid}_video.mp4')
     output_path = os.path.join(OUTPUT_DIR, f'reel_{tmpl["id"]}_{uid}.mp4')
-    
+
     file.save(input_path)
-    
+
     try:
         cut = str(tmpl['cut'])
-        green = tmpl['green']
-        audio = tmpl['audio']
-        
-        # Step 1: Girl clip (first N seconds, scaled to 720x1280)
-        subprocess.run([
+
+        # Check assets exist
+        if not os.path.exists(tmpl['green']):
+            return jsonify({'error': f'Green clip not found: {tmpl["green"]}'}), 500
+        if not os.path.exists(tmpl['audio']):
+            return jsonify({'error': f'Audio not found: {tmpl["audio"]}'}), 500
+
+        # Step 1: Girl clip
+        r1 = subprocess.run([
             'ffmpeg', '-y', '-i', input_path, '-t', cut,
             '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280',
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-r', '30', '-pix_fmt', 'yuv420p',
             '-an', girl_path
-        ], capture_output=True, timeout=60)
-        
-        # Step 2: Concat girl + green
+        ], capture_output=True, text=True, timeout=120)
+
+        if not os.path.exists(girl_path):
+            return jsonify({'error': 'FFmpeg girl clip failed: ' + r1.stderr[-200:]}), 500
+
+        # Step 2: Copy green clip (re-encode to match)
+        r2 = subprocess.run([
+            'ffmpeg', '-y', '-i', tmpl['green'],
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-r', '30', '-pix_fmt', 'yuv420p',
+            '-an', green_path
+        ], capture_output=True, text=True, timeout=120)
+
+        if not os.path.exists(green_path):
+            return jsonify({'error': 'FFmpeg green clip failed: ' + r2.stderr[-200:]}), 500
+
+        # Step 3: Concat
         with open(concat_path, 'w') as f:
-            f.write(f"file '{girl_path}'\nfile '{os.path.abspath(green)}'\n")
-        
-        subprocess.run([
+            f.write(f"file '{girl_path}'\nfile '{green_path}'\n")
+
+        r3 = subprocess.run([
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_path,
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '20', '-pix_fmt', 'yuv420p',
             video_path
-        ], capture_output=True, timeout=60)
-        
-        # Step 3: Add audio
-        subprocess.run([
-            'ffmpeg', '-y', '-i', video_path, '-i', os.path.abspath(audio),
+        ], capture_output=True, text=True, timeout=120)
+
+        if not os.path.exists(video_path):
+            return jsonify({'error': 'FFmpeg concat failed: ' + r3.stderr[-200:]}), 500
+
+        # Step 4: Add audio
+        r4 = subprocess.run([
+            'ffmpeg', '-y', '-i', video_path, '-i', tmpl['audio'],
             '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
             '-map', '0:v:0', '-map', '1:a:0',
             '-shortest', '-movflags', '+faststart',
             output_path
-        ], capture_output=True, timeout=60)
-        
+        ], capture_output=True, text=True, timeout=120)
+
         if not os.path.exists(output_path):
-            return jsonify({'error': 'FFmpeg a échoué'}), 500
-        
-        # Cleanup temp files
-        for f in [input_path, girl_path, concat_path, video_path]:
+            return jsonify({'error': 'FFmpeg audio failed: ' + r4.stderr[-200:]}), 500
+
+        # Cleanup
+        for f in [input_path, girl_path, green_path, concat_path, video_path]:
             try: os.remove(f)
             except: pass
-        
+
         filename = f'reel_{tmpl["id"]}_{uid}.mp4'
         return jsonify({
             'ok': True,
@@ -117,7 +151,7 @@ def process_video():
             'caption': caption,
             'download': f'/download/{filename}'
         })
-    
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -128,7 +162,6 @@ def download(filename):
         return jsonify({'error': 'Fichier non trouvé'}), 404
     return send_file(path, as_attachment=True, download_name=filename)
 
-# Cleanup old files periodically
 @app.before_request
 def cleanup():
     for d in [UPLOAD_DIR, OUTPUT_DIR]:
