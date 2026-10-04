@@ -1,4 +1,11 @@
-import os, random, subprocess, uuid, time, glob, zipfile, io
+import os
+import random
+import subprocess
+import uuid
+import time
+import glob
+import zipfile
+import io
 from flask import Flask, request, jsonify, send_file, render_template
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -10,14 +17,36 @@ OUTPUT_DIR = '/tmp/outputs'
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ──────────────────────────────────────────
-# MONTAGE VERT — templates portal effect
-# ──────────────────────────────────────────
+
+# ──────────────────────────────────────
+# MONTAGE VERT — portal effect templates
+# ──────────────────────────────────────
+
 TEMPLATES = [
-    {'id': 'only_few', 'cut': 2.367, 'green': os.path.join(BASE_DIR, 'assets', 'green_only_few.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_only_few.mp4')},
-    {'id': 'something', 'cut': 3.967, 'green': os.path.join(BASE_DIR, 'assets', 'green_something.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_something.mp4')},
-    {'id': 'first_move', 'cut': 4.333, 'green': os.path.join(BASE_DIR, 'assets', 'green_first_move.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_first_move.mp4')},
-    {'id': 'guess', 'cut': 4.000, 'green': os.path.join(BASE_DIR, 'assets', 'green_guess.mp4'), 'audio': os.path.join(BASE_DIR, 'assets', 'aud_guess.mp4')},
+    {
+        'id': 'only_few',
+        'cut': 2.367,
+        'green': os.path.join(BASE_DIR, 'assets', 'green_only_few.mp4'),
+        'audio': os.path.join(BASE_DIR, 'assets', 'aud_only_few.mp4'),
+    },
+    {
+        'id': 'something',
+        'cut': 3.967,
+        'green': os.path.join(BASE_DIR, 'assets', 'green_something.mp4'),
+        'audio': os.path.join(BASE_DIR, 'assets', 'aud_something.mp4'),
+    },
+    {
+        'id': 'first_move',
+        'cut': 4.333,
+        'green': os.path.join(BASE_DIR, 'assets', 'green_first_move.mp4'),
+        'audio': os.path.join(BASE_DIR, 'assets', 'aud_first_move.mp4'),
+    },
+    {
+        'id': 'guess',
+        'cut': 4.000,
+        'green': os.path.join(BASE_DIR, 'assets', 'green_guess.mp4'),
+        'audio': os.path.join(BASE_DIR, 'assets', 'aud_guess.mp4'),
+    },
 ]
 
 MONTAGE_CAPTIONS = [
@@ -47,44 +76,53 @@ MONTAGE_CAPTIONS = [
     "POV: she said she was staying in tonight...",
 ]
 
-# ──────────────────────────────────────────
-# CAPTION MODE — captions engagement
-# ──────────────────────────────────────────
+
+# ──────────────────────────────────────
+# CAPTION MODE — engagement captions
+# ──────────────────────────────────────
+
 CAPTION_TEXTS = [
     "My two cousins wanted to play a game with me... it hurt",
-    "I goon to audios of men whimpering but no one's ever gonna know cuz I barely have any followers and I'm not using any hashtags",
+    "I goon to audios of men whimpering but no one is ever gonna know cuz I barely have any followers and I am not using any hashtags",
     "I want to kiss me but replace the k with f and a with t",
-    "when I was 14, a boy in my class typed 55378008 on calculator, turned it upside down and said, that's you.",
-    "be a good boy and read this\nbackwards:\n\nelihc dna emina hctaw ew elihw\nstyttit gib esehc kcus ot nam a rof\ngnikool mi",
-    "Biology\nBut without\n\"b, o, g\"",
-    "I might be an 18yo blond but I'm not stupid. I know you have a card hock rn.\n\nNow change c with h",
-    "What I really need:\n\nBlack (without Bla)\nDirt (without rt)\nFour (without Fo)\nYOLO (without LO)",
-    "Missionary cause I'm pretty,\nbashots cause my 🍰 fat\n\nNow change R with S",
-    "If it doesn't slip out when he leans\ndown to kiss me so he can talk to me\nhowever he wants idc\n(Read every 4th word)",
-    "Amazing cook,\nlegs for days,\ntheep droat Queen\n\nNow read every third word",
+    "when I was 14 a boy in my class typed 55378008 on calculator turned it upside down and said thats you",
+    "be a good boy and read this backwards elihc dna emina hctaw ew elihw styttit gib esehc kcus ot nam a rof gnikool mi",
+    "Biology But without b o g",
+    "I might be an 18yo blond but I am not stupid. I know you have a card hock rn. Now change c with h",
+    "What I really need Black without Bla Dirt without rt Four without Fo YOLO without LO",
+    "Missionary cause I am pretty bashots cause my cake fat Now change R with S",
+    "If it does not slip out when he leans down to kiss me so he can talk to me however he wants idc Read every 4th word",
+    "Amazing cook legs for days theep droat Queen Now read every third word",
     "acc so small that if you like or interact w any of my reels I WILL definitely send you something in dms",
-    "I'm so single I literally text everyone who follows me.. I get excited thinking we might be friends. Send me this post and I'll",
+    "I am so single I literally text everyone who follows me I get excited thinking we might be friends Send me this post and I will",
     "Is 2008 too young?",
-    "this mommy stuff ain't no joke. i genuinely want to call him good boy, buy him hot wheels and ill be the race track",
+    "this mommy stuff aint no joke i genuinely want to call him good boy buy him hot wheels and ill be the race track",
     "Is 2007 too young?",
-    "If you have crush on me, pls go for it, you literally have no competition at all",
-    "What I really need:\nVehicle (without hicle)\nLobby (without bby)\nUrban (without ban)\nYoga (without ga)\n\nNow read it backwards",
-    "I look\nlike 18\nbecause\nolder man\nDon't take\nme\nSerious\n\nNow read:\n4,5,6,7,3,2,1",
-    "You can only pick two:\n\niPhone 18 Pro\n$500\nMe ?\nInfinite beer",
-    "when i tell older guy my\nage and he says you just a\nbabyyy instead of blocking\nme",
-    "let's make a deal, you give\nme a like and say good\nmorning and i'll message\nyou if i like you",
+    "If you have crush on me pls go for it you literally have no competition at all",
+    "What I really need Vehicle without hicle Lobby without bby Urban without ban Yoga without ga Now read it backwards",
+    "I look like 18 because older man Dont take me Serious Now read 4 5 6 7 3 2 1",
+    "You can only pick two iPhone 18 Pro or 500 dollars or Me or Infinite beer",
+    "when i tell older guy my age and he says you just a babyyy instead of blocking me",
+    "lets make a deal you give me a like and say good morning and ill message you if i like you",
 ]
 
 
-# ──────────────────────────────────────────
+# ──────────────────────────────────────
 # ROUTES
-# ──────────────────────────────────────────
+# ──────────────────────────────────────
 
 @app.route('/')
 def index():
-    return render_template('index.html',
-                           montage_captions=MONTAGE_CAPTIONS,
-                           caption_texts=CAPTION_TEXTS)
+    return render_template('index.html')
+
+
+@app.route('/api/captions')
+def get_captions():
+    """Return captions as JSON so JS can fetch them."""
+    return jsonify({
+        'montage': MONTAGE_CAPTIONS,
+        'caption': CAPTION_TEXTS,
+    })
 
 
 # ── MONTAGE VERT ──
@@ -92,18 +130,19 @@ def index():
 @app.route('/process', methods=['POST'])
 def process_montage():
     if 'video' not in request.files:
-        return jsonify({'error': 'Pas de vidéo'}), 400
+        return jsonify({'error': 'Pas de video'}), 400
 
     video = request.files['video']
     uid = str(uuid.uuid4())[:8]
     tmpl = random.choice(TEMPLATES)
     caption = random.choice(MONTAGE_CAPTIONS)
 
-    input_path = os.path.join(UPLOAD_DIR, f'{uid}_in.mp4')
-    girl_path = os.path.join(UPLOAD_DIR, f'{uid}_girl.mp4')
-    concat_path = os.path.join(UPLOAD_DIR, f'{uid}_concat.txt')
-    video_path = os.path.join(UPLOAD_DIR, f'{uid}_video.mp4')
-    output_path = os.path.join(OUTPUT_DIR, f'reel_{tmpl["id"]}_{uid}.mp4')
+    input_path = os.path.join(UPLOAD_DIR, uid + '_in.mp4')
+    girl_path = os.path.join(UPLOAD_DIR, uid + '_girl.mp4')
+    concat_path = os.path.join(UPLOAD_DIR, uid + '_concat.txt')
+    video_path = os.path.join(UPLOAD_DIR, uid + '_video.mp4')
+    output_name = 'reel_' + tmpl['id'] + '_' + uid + '.mp4'
+    output_path = os.path.join(OUTPUT_DIR, output_name)
 
     video.save(input_path)
 
@@ -112,9 +151,9 @@ def process_montage():
         audio = os.path.abspath(tmpl['audio'])
 
         if not os.path.exists(green):
-            return jsonify({'error': f'Asset manquant: {green}'}), 500
+            return jsonify({'error': 'Asset manquant: ' + green}), 500
 
-        # Step 1: Cut girl video
+        # Step 1: Cut girl video to template length
         subprocess.run([
             'ffmpeg', '-y', '-i', input_path,
             '-t', str(tmpl['cut']),
@@ -123,17 +162,13 @@ def process_montage():
             '-an', girl_path
         ], capture_output=True, timeout=120)
 
-        # Step 2: Concat girl + green
+        # Step 2: Concat girl + green clip with caption
         with open(concat_path, 'w') as f:
-            f.write(f"file '{os.path.abspath(girl_path)}'\nfile '{green}'\n")
+            f.write("file '" + os.path.abspath(girl_path) + "'\n")
+            f.write("file '" + green + "'\n")
 
-        # Drawtext caption
-        safe_caption = caption.replace("'", "'\\''").replace(":", "\\:").replace("%", "%%")
-        drawtext = (
-            f"drawtext=text='{safe_caption}':"
-            f"fontsize=36:fontcolor=white:borderw=2:bordercolor=black:"
-            f"x=(w-text_w)/2:y=h*0.08"
-        )
+        safe_cap = caption.replace("'", "\\'").replace(":", "\\:")
+        drawtext = "drawtext=text='" + safe_cap + "':fontsize=36:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h*0.08"
 
         subprocess.run([
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_path,
@@ -152,50 +187,49 @@ def process_montage():
         ], capture_output=True, timeout=120)
 
         if not os.path.exists(output_path):
-            return jsonify({'error': 'FFmpeg a échoué'}), 500
+            return jsonify({'error': 'FFmpeg a echoue'}), 500
 
-        filename = f'reel_{tmpl["id"]}_{uid}.mp4'
         return jsonify({
             'ok': True,
-            'file': filename,
+            'file': output_name,
             'template': tmpl['id'],
             'caption': caption,
-            'download': f'/download/{filename}'
+            'download': '/download/' + output_name
         })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
         for f in [input_path, girl_path, concat_path, video_path]:
-            try: os.remove(f)
-            except: pass
+            try:
+                os.remove(f)
+            except:
+                pass
 
 
 # ── CAPTION MODE ──
 
 @app.route('/caption', methods=['POST'])
 def process_caption():
-    """Single video — random caption overlay."""
     if 'video' not in request.files:
-        return jsonify({'error': 'Pas de vidéo'}), 400
+        return jsonify({'error': 'Pas de video'}), 400
 
     video = request.files['video']
     caption = random.choice(CAPTION_TEXTS)
     uid = str(uuid.uuid4())[:8]
-    ext = os.path.splitext(video.filename)[1] or '.mp4'
-    input_path = os.path.join(UPLOAD_DIR, f'{uid}_in{ext}')
-    output_path = os.path.join(OUTPUT_DIR, f'caption_{uid}.mp4')
+    input_path = os.path.join(UPLOAD_DIR, uid + '_in.mp4')
+    output_name = 'caption_' + uid + '.mp4'
+    output_path = os.path.join(OUTPUT_DIR, output_name)
 
     video.save(input_path)
 
     try:
-        _add_caption_ffmpeg(input_path, output_path, caption)
-        filename = f'caption_{uid}.mp4'
+        _add_caption(input_path, output_path, caption)
         return jsonify({
             'ok': True,
-            'file': filename,
+            'file': output_name,
             'caption': caption,
-            'download': f'/download/{filename}'
+            'download': '/download/' + output_name
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -206,28 +240,23 @@ def process_caption():
 
 @app.route('/caption-batch', methods=['POST'])
 def process_caption_batch():
-    """Multiple videos — each gets a random caption, return zip."""
     files = request.files.getlist('videos')
     if not files:
-        return jsonify({'error': 'Pas de vidéos'}), 400
+        return jsonify({'error': 'Pas de videos'}), 400
 
     zip_buffer = io.BytesIO()
-
     with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for i, video in enumerate(files):
             caption = random.choice(CAPTION_TEXTS)
             uid = str(uuid.uuid4())[:8]
-            ext = os.path.splitext(video.filename)[1] or '.mp4'
-            input_path = os.path.join(UPLOAD_DIR, f'{uid}_in{ext}')
-            output_path = os.path.join(UPLOAD_DIR, f'{uid}_out.mp4')
-
+            input_path = os.path.join(UPLOAD_DIR, uid + '_in.mp4')
+            output_path = os.path.join(UPLOAD_DIR, uid + '_out.mp4')
             video.save(input_path)
-
             try:
-                _add_caption_ffmpeg(input_path, output_path, caption)
-                zf.write(output_path, f'caption_{i+1}.mp4')
+                _add_caption(input_path, output_path, caption)
+                zf.write(output_path, 'caption_' + str(i + 1) + '.mp4')
             except Exception as e:
-                print(f'Caption batch error on video {i+1}: {e}')
+                print('Batch error video ' + str(i + 1) + ': ' + str(e))
             finally:
                 for p in [input_path, output_path]:
                     if os.path.exists(p):
@@ -238,43 +267,26 @@ def process_caption_batch():
         zip_buffer,
         mimetype='application/zip',
         as_attachment=True,
-        download_name=f'captions_batch_{int(time.time())}.zip'
+        download_name='captions_batch.zip'
     )
 
 
-def _add_caption_ffmpeg(input_path, output_path, caption):
-    """Overlay white text + black outline on video, keep audio."""
-    safe = caption.replace("\\", "\\\\\\\\")
-    safe = safe.replace("'", "'\\''")
-    safe = safe.replace(":", "\\:")
-    safe = safe.replace("%", "%%")
-
-    drawtext = (
-        f"drawtext=text='{safe}':"
-        f"fontsize=(w/18):"
-        f"fontcolor=white:"
-        f"borderw=3:"
-        f"bordercolor=black:"
-        f"x=(w-text_w)/2:"
-        f"y=(h-text_h)/2:"
-        f"line_spacing=8"
-    )
+def _add_caption(input_path, output_path, caption):
+    safe = caption.replace("'", "\\'").replace(":", "\\:")
+    drawtext = "drawtext=text='" + safe + "':fontsize=(w/18):fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2:line_spacing=8"
 
     cmd = [
         'ffmpeg', '-y',
         '-i', input_path,
         '-vf', drawtext,
-        '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '23',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
         '-c:a', 'copy',
         '-movflags', '+faststart',
         output_path
     ]
-
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if result.returncode != 0:
-        raise Exception(f'FFmpeg error: {result.stderr[-500:]}')
+        raise Exception('FFmpeg: ' + result.stderr[-300:])
 
 
 # ── SHARED ──
@@ -283,7 +295,7 @@ def _add_caption_ffmpeg(input_path, output_path, caption):
 def download(filename):
     path = os.path.join(OUTPUT_DIR, filename)
     if not os.path.exists(path):
-        return jsonify({'error': 'Fichier non trouvé'}), 404
+        return jsonify({'error': 'Fichier non trouve'}), 404
     return send_file(path, as_attachment=True, download_name=filename)
 
 
@@ -298,7 +310,7 @@ def download_all():
             zf.write(f, os.path.basename(f))
     zip_buf.seek(0)
     return send_file(zip_buf, as_attachment=True,
-                     download_name=f'reels_batch_{int(time.time())}.zip',
+                     download_name='reels_batch.zip',
                      mimetype='application/zip')
 
 
@@ -307,8 +319,10 @@ def cleanup_old():
     for d in [UPLOAD_DIR, OUTPUT_DIR]:
         for f in glob.glob(os.path.join(d, '*')):
             if time.time() - os.path.getmtime(f) > 3600:
-                try: os.remove(f)
-                except: pass
+                try:
+                    os.remove(f)
+                except:
+                    pass
 
 
 if __name__ == '__main__':
